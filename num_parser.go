@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 )
@@ -10,6 +11,10 @@ func IsNumber(expression string) bool {
 }
 
 func GetNumber(expression string) (int, error) {
+	if !IsNumber(expression) {
+		return 0, errors.New("Принимаются только целые числа.")
+	}
+
 	if IsRomanic(expression) {
 		return ParseRomanic(expression)
 	}
@@ -68,4 +73,48 @@ func ParseRomanic(expression string) (int, error) {
 	}
 
 	return res, nil
+}
+
+func ToRomanic(n int) (string, error) {
+	if n < 0 {
+		return "", errors.New("Вывод ошибки, так как в римской системе нет отрицательных чисел.")
+	}
+
+	if n == 0 {
+		return "", errors.New("Вывод ошибки, так как в римской системе нет нуля.")
+	}
+
+	dec_and_romanic_pairs := map[int]string{
+		1:   "I",
+		2:   "II",
+		3:   "III",
+		4:   "IV",
+		5:   "V",
+		6:   "VI",
+		7:   "VII",
+		8:   "VIII",
+		9:   "XI",
+		10:  "X",
+		20:  "XX",
+		30:  "XXX",
+		40:  "XL",
+		50:  "L",
+		60:  "LX",
+		70:  "LXX",
+		80:  "LXXX",
+		90:  "XC",
+		100: "C",
+	}
+
+	r := ""
+	k := 10
+
+	for n > 0 {
+		d := n % k
+		r = dec_and_romanic_pairs[d] + r
+		n -= d
+		k *= 10
+	}
+
+	return r, nil
 }

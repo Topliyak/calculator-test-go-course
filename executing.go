@@ -1,115 +1,86 @@
 package main
 
-import "strings"
+import (
+	"errors"
+	"strconv"
+	"strings"
+)
 
 const (
 	actions = "+-*/"
 )
 
-func Calculate(expression string) int {
-	expression = DeleteBrackets(expression)
+func Calculate(expression string) (string, error) {
+	left, right, action, err := SplitByAction(expression)
 
-	if IsNumber(expression) {
-		n, _ := GetNumber(expression)
-		return n
+	if err != nil {
+		return "", err
 	}
 
-	left, right, action := SplitByAction(expression)
+	lv, err1 := GetNumber(left)
+	rv, err2 := GetNumber(right)
 
-	lv := Calculate(left)
-	rv := Calculate(right)
+	if err1 != nil {
+		return "", err1
+	}
 
-	return action.Execute(lv, rv)
+	if err2 != nil {
+		return "", err2
+	}
+
+	if lv < 1 || lv > 10 || rv < 1 || rv > 10 {
+		return "", errors.New("Число должно быть между 1 и 10 включительно.")
+	}
+
+	if IsRomanic(left) != IsRomanic(right) {
+		return "", errors.New("Вывод ошибки, так как используются одновременно разные системы счисления.")
+	}
+
+	v := action.Execute(lv, rv)
+
+	if IsRomanic(left) {
+		return ToRomanic(v)
+	}
+
+	return strconv.FormatInt(int64(v), 10), nil
 }
 
-func SplitByAction(expression string) (left string, right string, action Action) {
-	act_index := GetActionIndex(expression)
+func SplitByAction(expression string) (left string, right string, action Action, e error) {
+	act_index, err := GetActionIndex(expression)
+
+	if err != nil {
+		return "", "", nil, err
+	}
 
 	left = expression[:act_index]
+	left = strings.TrimSpace(left)
+
 	right = expression[act_index+1:]
+	right = strings.TrimSpace(right)
+
 	action = GetAction(expression[act_index])
 
-	return left, right, action
+	return left, right, action, nil
 }
 
-func DefineActionChar(expression string) rune {
-	for _, a := range actions {
-		if IsActionThere(expression, a) {
-			return a
-		}
-	}
-
-	return ' '
-}
-
-func GetActionIndex(expression string) int {
-	action := DefineActionChar(expression)
-	opened_brackets := 0
+func GetActionIndex(expression string) (int, error) {
+	index := -1
 
 	for i, c := range expression {
-		if c == '(' {
-			opened_brackets++
-		}
-
-		if c == ')' {
-			opened_brackets--
-		}
-
-		if opened_brackets == 0 && c == action {
-			return i
+		if strings.ContainsRune(actions, c) {
+			if index == -1 {
+				index = i
+			} else {
+				return -1, errors.New("Вывод ошибки, так как формат математической операции не удовлетворяет заданию — два операнда и один оператор (+, -, /, *).")
+			}
 		}
 	}
 
-	return -1
-}
-
-func IsActionThere(expression string, action rune) bool {
-	opened_brackets := 0
-
-	for _, c := range expression {
-		if c == '(' {
-			opened_brackets++
-		}
-
-		if c == ')' {
-			opened_brackets--
-		}
-
-		if opened_brackets == 0 && c == action {
-			return true
-		}
+	if index == -1 {
+		return -1, errors.New("Вывод ошибки, так как строка не является математической операцией.")
 	}
 
-	return false
-}
-
-func DeleteBrackets(expression string) string {
-	expression = strings.TrimSpace(expression)
-
-	for InBrackets(expression) {
-		end := len(expression) - 1
-		expression = expression[1:end]
-	}
-
-	return expression
-}
-
-func InBrackets(expression string) bool {
-	end := len(expression) - 1
-	cutted := expression[:end]
-	brackets_opened := 0
-
-	for _, c := range cutted {
-		if c == '(' {
-			brackets_opened++
-		}
-
-		if c == ')' {
-			brackets_opened--
-		}
-	}
-
-	return brackets_opened == 1
+	return index, nil
 }
 
 func GetAction(c byte) Action {

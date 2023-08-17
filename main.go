@@ -10,8 +10,13 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	exp, _ := reader.ReadString('\n')
-	res := Calculate(exp)
-	fmt.Println(res)
+	res, err := Calculate(exp)
 
-	reader.ReadString('\n')
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(res)
+	}
+
+	// reader.ReadString('\n')
 }
